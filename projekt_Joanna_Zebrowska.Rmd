@@ -1,0 +1,658 @@
+---
+title: "Analiza Jadalności Grzybów"
+author: "Joanna Żebrowska"
+date: "2024-11-30"
+output:
+  
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+      position: right
+    number_sections: false
+always_allow_html: true
+    
+    
+  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Temat projektu:
+
+**Analiza cech morfologicznych  grzybów w kontekście ich żywieniowych podstaw „Secondary Mushroom Dataset” .**
+
+## Szczegółowe cele badawcze:
+
+* **Cel 1:** Zbadanie zależności między kolorem kapelusza a jadalnością grzybów, z uwzględnieniem możliwych różnic w barwach między gatunkami jadalnymi a trującymi.
+* **Cel 2:** Analiza wpływu szerokości i wysokości grzyba na jego jadalność, aby ocenić znaczenie rozmiaru dla klasyfikacji.
+* **Cel 3:** Badanie związku między sposobem przytwierdzenia blaszek a kolorem kapelusza grzyba jako potencjalnym wskaźnikiem morfologicznym.
+* **Cel 4:** Ocena wpływu siedliska występowania grzybów na ich jadalność, uwzględniając różnorodność środowiskową.
+* **Cel 5:** Zbadanie sezonowych zależności w występowaniu jadalnych i trujących grzybów, aby określić, czy pora roku może być istotnym czynnikiem w ich klasyfikacji.
+
+## Hipotezy badawcze:
+
+* **Hipoteza 1:** Jasne kolory kapelusza są częściej związane z grzybami jadalnymi niż trującymi.
+* **Hipoteza 2:** Rozmiar grzyba, w szczególności szerokość i wysokość, ma znaczący wpływ na jadalność.
+* **Hipoteza 3:** Istnieje związek między przytwierdzeniem blaszek a kolorem kapelusza, który może wskazywać na potencjalną toksyczność grzyba.
+* **Hipoteza 4:** Siedlisko grzyba (np. lasy wilgotne,trawy,lasy, łąki) istotnie wpływa na jego jadalność.
+* **Hipoteza 5:** Pora roku znacząco wpływa na dystrybucję jadalnych i trujących gatunków grzybów.
+
+
+# 1.Cel Projektu
+
+Celem realizacji projektu jest szczegółowa analiza zbioru danych grzybów w celu zidentyfikowania głównych cech morfologicznych, które skutecznie determinują, czy dany grzyb jest jadalny, czy trujący. W wielu gatunkach grzybów występujących w naturze, odróżnienie jadalnych od trujących ma ogromne znaczenie, szczególnie dla grzybiarzy.  Kluczowe cechy charakterystyczne, takie jak kolor kapelusza, kształt trzonu, oraz kolor i rozmiar trzonu, pora roku itp., mogą mieć największe znaczenie.
+
+ W trakcie analizy stworzyłam wizualizacje istotne dla zmiennych oraz przetestowałam hipotezy badawcze. Ostatecznym celem projektu jest zapewnienie bezpieczeństwa podczas zbierania grzybów oraz umożliwienie ich skutecznej kontroli na podstawie cech fizycznych.
+
+
+# 2.Scharakteryzowanie analizowanego zbioru danych.
+
+Dane dostarczane z zestawu danych Secondary Mushroom dostępny w repozytorium nauczania maszynowego UCI. Zbiór danych zawiera informacje o 8124 próbkach grzybów i 22 cechach morfologicznych, takich jak:
+
+* class - klasa	                           
+* cap-diameter	- średnica czapki
+* cap-shape	- kształt czapki
+* cap-surface	- powierzchnia czapki
+* cap-color	- kolor czapki
+* does-bruise-or-bleed	- siniaki lub krwawienia
+* gill-attachment - przytwierdzenia skrzelowe
+* gill-spacing	- rozstaw skrzelowy
+* gill-color	- kolor skrzelowy
+* stem-height	- wysokość łodygi
+* stem-width	- szerokość łodygi
+* stem-root	- łodyga-korzeń
+* stem-surface	- powierzchnia łodygi
+* stem-color	- kolor łodygi
+* veil-type	- welon-typ
+* veil-color - kolor welonu
+* has-ring	- ma-pierścień
+* ring-type - pierścień-typ
+* spore-print-color - kolor-zarodnikow
+* habitat	- siedlisko
+* season - sezon
+
+
+
+
+
+```{r, echo=FALSE}
+
+# Ustawienie katalogu roboczego
+setwd("C:/Users/Asia/Desktop/projekt")
+
+# Wczytanie pliku CSV
+data <- read.csv("MushroomDataset/secondary_data.csv", sep = ";", stringsAsFactors = FALSE)
+
+# Funkcja rozwijająca skróty
+expand_abbreviations <- function(value, type) {
+  # Obsługa pustych wartości
+  if (value == "") {
+    return("not specified")
+  }
+  
+  switch(type,
+    class = switch(value,
+      e = "edible",
+      p = "poisonous",
+      x = "not specified"
+    ),
+    cap_shape = switch(value,
+      b = "bell",
+      c = "conical",
+      f = "flat",
+      k = "knobbed",
+      s = "sunken",
+      x = "not specified"
+    ),
+    cap_surface = switch(value,
+      g = "grooves",
+      f = "fibrous",
+      y = "scaly",
+      s = "smooth",
+      h = "hilly",  
+      x = "not specified"
+    ),
+    cap_color = switch(value,
+      n = "brown",
+      b = "buff",
+      c = "cinnamon",
+      g = "gray",
+      r = "green",
+      p = "pink",
+      u = "purple",
+      e = "red",
+      w = "white",
+      y = "yellow",
+      o = "orange",  
+      x = "not specified"
+    ),
+    does_bruise_or_bleed = switch(value,
+      t = "bruises",
+      f = "does not bruise",
+      x = "not specified"
+    ),
+    gill_attachment = switch(value,
+      a = "attached",   # Przylegający
+      e = "ephemeral",  # Krótkotrwały
+      d = "descending",
+      f = "free",
+      x = "not specified"
+    ),
+    gill_spacing = switch(value,
+      c = "close",
+      n = "not crowded",
+      x = "not specified"
+    ),
+    gill_color = switch(value,
+      b = "black",
+      h = "brown",
+      g = "gray",
+      r = "green",
+      u = "purple",
+      e = "red",
+      w = "white",
+      y = "yellow",
+      x = "not specified"
+    ),
+    stem_height = as.numeric(value),  # Konwersja wartości na numeryczne
+    stem_width = as.numeric(value),   # Konwersja wartości na numeryczne
+    stem_root = switch(value,
+      e = "equal",
+      t = "tapering",
+      b = "bulbous",
+      s = "smooth",
+      x = "not specified"
+    ),
+    stem_surface = switch(value,
+      f = "fibrous",
+      s = "smooth",
+      x = "not specified"
+    ),
+    stem_color = switch(value,
+      n = "brown",
+      b = "buff",
+      c = "cinnamon",
+      g = "gray",
+      r = "green",
+      p = "pink",
+      u = "purple",
+      e = "red",
+      w = "white",
+      y = "yellow",
+      x = "not specified"
+    ),
+    veil_type = switch(value,
+      p = "partial",
+      u = "universal",
+      x = "not specified"
+    ),
+    veil_color = switch(value,
+      n = "brown",
+      o = "orange",
+      w = "white",
+      y = "yellow",
+      x = "not specified"
+    ),
+    has_ring = switch(value,
+      t = "has ring",
+      f = "no ring",
+      x = "not specified"
+    ),
+    ring_type = switch(value,
+      e = "evanescent",
+      f = "flaring",
+      l = "large",
+      n = "none",
+      p = "pendant",
+      s = "sheathing",
+      x = "not specified"
+    ),
+    spore_print_color = switch(value,
+      b = "black",
+      h = "brown",
+      g = "green",
+      r = "red",
+      p = "purple",
+      o = "orange",
+      w = "white",
+      y = "yellow",
+      x = "not specified"
+    ),
+    habitat = switch(value,
+      g = "grassy",
+      w = "woods",
+      l = "leaves",
+      m = "meadows",
+      p = "paths",
+      u = "urban",
+      d = "damp_forest",
+      x = "not specified"
+    ),
+    season = switch(value,
+      s = "spring",
+      u = "summer",
+      a = "autumn",
+      w = "winter",
+      x = "not specified"
+    ),
+    value 
+  )
+}
+
+# Rozwijanie skrótów w każdej kolumnie
+data$class <- sapply(data$class, expand_abbreviations, type = "class")
+data$cap.shape <- sapply(data$cap.shape, expand_abbreviations, type = "cap_shape")
+data$cap.surface <- sapply(data$cap.surface, expand_abbreviations, type = "cap_surface")
+data$cap.color <- sapply(data$cap.color, expand_abbreviations, type = "cap_color")
+data$does.bruise.or.bleed <- sapply(data$does.bruise.or.bleed, expand_abbreviations, type = "does_bruise_or_bleed")
+data$gill.attachment <- sapply(data$gill.attachment, expand_abbreviations, type = "gill_attachment")
+data$gill.spacing <- sapply(data$gill.spacing, expand_abbreviations, type = "gill_spacing")
+data$gill.color <- sapply(data$gill.color, expand_abbreviations, type = "gill_color")
+data$stem.height <- sapply(data$stem.height, expand_abbreviations, type = "stem_height")
+data$stem.width <- sapply(data$stem.width, expand_abbreviations, type = "stem_width")
+data$stem.root <- sapply(data$stem.root, expand_abbreviations, type = "stem_root")  # Rozszerzanie skrótów w stem.root
+data$stem.surface <- sapply(data$stem.surface, expand_abbreviations, type = "stem_surface")
+data$stem.color <- sapply(data$stem.color, expand_abbreviations, type = "stem_color")
+data$veil.type <- sapply(data$veil.type, expand_abbreviations, type = "veil_type")
+data$veil.color <- sapply(data$veil.color, expand_abbreviations, type = "veil_color")
+data$has.ring <- sapply(data$has.ring, expand_abbreviations, type = "has_ring")
+data$ring.type <- sapply(data$ring.type, expand_abbreviations, type = "ring_type")
+data$spore.print.color <- sapply(data$spore.print.color, expand_abbreviations, type = "spore_print_color")
+data$habitat <- sapply(data$habitat, expand_abbreviations, type = "habitat")
+data$season <- sapply(data$season, expand_abbreviations, type = "season")
+
+
+
+# kolumny  typu character
+data[] <- lapply(data, as.character) 
+
+
+write.csv(data, "MushroomDataset/expanded_data.csv", row.names = FALSE)
+
+
+```
+
+
+# Wizualizacje.
+
+## 1. Kolor kapelusza a jadalność.
+
+W pierwszej wizualizacji przedstawiłam zależność między kolorami kapeluszy grzybów a ich klasyfikacją jako jadalne lub trujące. Wykres słupkowy pokaże różnorodność kolorów kapeluszy na osi poziomej, natomiast wysokość słupków odzwierciedli liczbę grzybów w poszczególnych kategoriach. .
+
+
+```{r,echo=FALSE}
+library(ggplot2)
+library(dplyr)
+
+# Filtracja danych dla jadalnych i trujących oraz usunięcie NULL z cap.color
+data_filtered <- data %>%
+  filter(class %in% c("edible", "poisonous")) %>%
+  filter(!is.na(cap.color) & cap.color != "NULL") %>%
+  group_by(cap.color, class) %>%
+  summarise(count = n(), .groups = 'drop')
+
+# Wykres dla grzybów jadalnych
+p_edible <- ggplot(data_filtered %>% filter(class == "edible"), aes(x = cap.color, y = count, fill = class)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = 'Liczba grzybów jadalnych w zależności od koloru kapelusza',
+       x = 'Kolor kapelusza',
+       y = 'Liczba grzybów') +
+  scale_fill_manual(values = c("edible" = "green")) +
+  theme_minimal()
+
+# Wykres dla grzybów trujących
+p_poisonous <- ggplot(data_filtered %>% filter(class == "poisonous"), aes(x = cap.color, y = count, fill = class)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = 'Liczba grzybów trujących w zależności od koloru kapelusza',
+       x = 'Kolor kapelusza',
+       y = 'Liczba grzybów') +
+  scale_fill_manual(values = c("poisonous" = "red")) +
+  theme_minimal()
+
+# Wyświetlanie wykresów
+print(p_edible)
+print(p_poisonous)
+
+
+```
+
+
+### Interpretacja oraz Wnioski:
+
+Z analizy wykresów wynika, że kolor kapelusza jest kluczem wpływającym na jadalność grzybów.
+
+
+#### Ogólna struktura wykresu:
+
+Wykresy składają się z dwóch zestawów słupków, które reprezentują różne klasy grzybów: jadalne (edible) i trujące (poisonous). Oś X przedstawia różne kolory kapeluszy, podczas gdy oś Y przedstawia nazwy grzybów w każdej kategorii. Słupki są kolorowane w zależności od klasycznych grzybów, co ułatwia ich dostępność.
+
+####  Kolory Kapelusza:
+* **Brązowy (brown) :** Brązowy kolor kapelusza jest najczęściej spotykany w tej adapterze. Z wykresu wynika, że ​​wiele jadalnych grzybów ma brązowy kapelusz, ale istnieją również trujące rozwiązania o tym samym kolorze. To może sugerować, że kolor kapelusza nie jest jednoznacznym znacznikiem jadalnym.
+
+* **Czerwony (red) :** Czerwone kapelusze są głównymi reprezentowanymi przez grzyby trujące. dane do wzroście słupków dla tej kategorii, co może sugerować, że kolory, takie jak czerwony, mogą być sygnałem ostrzegawczym w przyrodzie, wskazaniem na ryzyko niebezpieczeństwa.
+
+* **Biały (white) :** Kolor biały jest obecny w grupie jadalnych, jak i trujących grzybów, co ponownie podkreśla, że ​​białe kapelusze mogą być stosowane w obu grupach. Wskazuje na przyczynę wystąpienia grzybów, a nie jest spowodowana wyłącznie na kolor kapelusza.
+
+* **Inne kolory :** Inne kolory, takie jak żółty, pomarańczowy czy zielony, również mają swoje reprezentacje.. Na przykład grzyby o szarym kapeluszu mogą być trudne do sklasyfikowania, ponieważ są przeznaczone do spożycia, jak i mogą być  trujące.
+
+
+
+
+#### Z analizy wykresu można również wywnioskować, że:
+
+* **Jadalne Grzyby :** 
+Wśród jadalnych grzybów są brązowe co może sugerować, że ten kolor jest bardziej powszechny oraz bezpieczny .
+
+* **Trujące Grzyby :**
+Kolory, takie jak czerwony i żółty i szary, są często uważane za trujące.
+Wyraziste kolory w przyrodzie często pełnią funkcję ostrzegawczą, co może sugerować, że dany gatunek jest trujący lub szkodliwy.
+
+
+## 2. Szerokość i wysokość grzyba a jadalność.
+
+
+Wizualizacja przedstawia wykres punktowy, który ilustruje wystąpienie między wysokością a szerokością podstawową grzybów, z różnicowaniem według ich jadalności . Na osi X znajduje się wysokość trzonu (w centymetrach), a na osi Y szerokość trzonu (również w centymetrach). Punkty na wykresach są zabarwione na dwa kolory: zielony dla grzybów jadalnych i czerwony dla grzybów trujących. Wykres został udostępniony w oszczędnym stylu, co ułatwia jego interpretację.
+
+
+### Statyczny wykres punktowy
+
+```{r,echo=FALSE}
+library(ggplot2)
+library(dplyr)
+
+# Filtracja danych
+data_filtered <- data %>%
+  filter(class %in% c("edible", "poisonous"))
+
+# Tworzenie wykresu punktowego z siatką
+scatter_plot_with_grid <- ggplot(data_filtered, aes(x = as.numeric(stem.height), 
+                                                    y = as.numeric(stem.width), 
+                                                    color = class, 
+                                                    shape = class)) + 
+  geom_point(size = 2, alpha = 0.7) +  # Zmniejszenie punktów i przezroczystość
+  labs(title = "Wysokość i Szerokość Trzonu a Jadalność Grzyba", 
+       x = "Wysokość trzonu (cm)", 
+       y = "Szerokość trzonu (cm)") + 
+  scale_color_manual(values = c("edible" = "green", "poisonous" = "red")) + 
+  scale_shape_manual(values = c(16, 18)) +  # Kształty punktów
+  theme_minimal() +
+  theme(legend.title = element_blank(), 
+        panel.grid.major = element_line(color = "gray", size = 0.5))  # Dodanie siatki
+
+# Wyświetlenie wykresu
+print(scatter_plot_with_grid)
+
+
+
+```
+
+```{r,echo=FALSE}
+library(ggplot2)
+library(dplyr)
+
+# Filtracja danych
+data_filtered <- data %>%
+  filter(class %in% c("edible", "poisonous"))
+
+# Tworzenie wykresu punktowego z facetami
+scatter_plot_with_facets <- ggplot(data_filtered, aes(x = as.numeric(stem.height), 
+                                                     y = as.numeric(stem.width), 
+                                                     color = class, 
+                                                     shape = class)) + 
+  geom_point(size = 2, alpha = 0.7) +  # Zmniejszenie punktów i przezroczystość
+  labs(title = "Wysokość i Szerokość Trzonu a Jadalność Grzyba", 
+       x = "Wysokość trzonu (cm)", 
+       y = "Szerokość trzonu (cm)") + 
+  scale_color_manual(values = c("edible" = "green", "poisonous" = "red")) + 
+  scale_shape_manual(values = c(16, 18)) +  # Kształty punktów
+  theme_minimal() +
+  theme(legend.title = element_blank()) + 
+  facet_wrap(~ class)  # Rozdzielenie wykresu na różne klasy
+
+# Wyświetlenie wykresu
+print(scatter_plot_with_facets)
+
+
+```
+
+### Interpretacja oraz Wnioski:
+
+
+* **Rozkład Punktów:**
+
+Na wykresie punktowym przedstawiającym zależność między wysokością a szerokością grzybów, widoczne są dwie główne grupy danych: grzyby jadalne (oznaczone kolorem zielonym) oraz grzyby trujące (oznaczone kolorem czerwonym). Punkty reprezentujące grzyby jadalne są wyraźnie skoncentrowane w obszarach, gdzie wysokości i szerokości grzybów mieszczą się w określonych przedziałach, odróżniając je od większości punktów przypisanych do grzybów trujących. 
+Wizualizacja ta sugeruje, że większe grzyby, o znacznych wymiarach wysokości i szerokości, są częściej klasyfikowane jako jadalne. Jednakże warto zauważyć, że w grupie grzybów trujących również występują okazy o dużych wymiarach, co wskazuje, że sam rozmiar nie jest wyłącznym wskaźnikiem jadalności.
+
+* **Grupy Jadalne vs. Trujące :**
+
+ Wykres wyraźnie ukazuje różnice w wymiarach pomiędzy grzybami jadalnymi a trującymi. Mniejsze grzyby (reprezentowane przez czerwone punkty) przeważają w grupie grzybów trujących, co może sugerować, że niewielkie wymiary grzybów mogą być jednym z czynników wskazujących na ich potencjalną toksyczność. Niemniej jednak, nie wszystkie małe grzyby są trujące, a także nie wszystkie duże grzyby są jadalne. Oznacza to, że rozmiar może stanowić pomocny, choć niejednoznaczny, wskaźnik identyfikacji. Analiza ta podkreśla potrzebę uwzględnienia dodatkowych cech morfologicznych lub chemicznych, aby poprawnie rozróżnić grzyby jadalne od trujących..
+
+* **Wyjątki :**
+
+Na wykresie można również zaobserwować punkty, które odbiegają od ogólnego wzorca. Niektóre grzyby trujące mają wymiary podobne do grzybów jadalnych, a także odwrotnie – niewielkie grzyby mogą być jadalne. Wskazuje to, że wyłączne opieranie się na wysokości i szerokości grzybów jako kryteriach klasyfikacji może prowadzić do błędnych wniosków. Morfologiczne cechy grzybów, choć mogą stanowić cenny element identyfikacji, nie zawsze w pełni oddają ich właściwości, takie jak toksyczność czy wartość spożywcza. Dlatego klasyfikacja grzybów powinna być wsparta dodatkowymi metodami, np. analizą chemiczną lub molekularną, aby zminimalizować ryzyko błędów.
+
+
+
+### Podsumowanie
+Przedstawiona wizualizacja zależności wysokości i szerokości grzybów ilustruje ogólne różnice między grzybami jadalnymi i trującymi, ale także uwidacznia ograniczenia związane z wykorzystywaniem wyłącznie parametrów wymiarowych do ich klasyfikacji. Rozkład punktów podkreśla potencjalne wzorce, które mogą wspomagać identyfikację, ale jednocześnie wskazuje na potrzebę ostrożności i uwzględnienia dodatkowych informacji w procesie oceny.
+
+
+## 3. Przytwierdzenie skrzelowe a kolor czapki grzybów.
+
+Przytwierdzenie skrzelowe (gill attachment) jest kluczowym elementem w identyfikacji grzybów, ponieważ opisuje sposób, w jaki skrzela są przytwierdzone do trzonu. Kolor czapki (cap color) to kolejna cecha używana do rozpoznawania grzybów, często związana z ich gatunkiem i etapem rozwoju. Zbadanie związku między tymi dwiema cechami może pomóc lepiej zrozumieć, czy istnieją dominujące kolory czapek wśród grzybów o określonym typie przytwierdzenia skrzelowego.
+
+Wizualizacja pokaże rozkład różnych kolorów czapek w odniesieniu do każdego typu przytwierdzenia skrzelowego, co może ujawnić wzorce lub preferencje w danych.
+
+
+
+```{r,echo=FALSE}
+
+library(ggplot2)
+library(dplyr)
+library(plotly)
+
+# Filtracja danych i zachowanie oryginalnych wartości
+data_filtered <- data %>%
+  filter(
+    !is.na(gill.attachment) & gill.attachment != "NULL" & 
+    !is.null(gill.attachment) & gill.attachment != "not specified" & gill.attachment != "",
+    !is.na(cap.color) & !is.null(cap.color) & cap.color != "not specified" & cap.color != ""
+  ) %>%
+  mutate(
+    cap.color = ifelse(cap.color == "NULL", "light green", cap.color) # Zmiana wartości NULL na "light green"
+  )
+
+# Tworzenie wykresu w ggplot2
+plot3 <- ggplot(data_filtered, aes(x = gill.attachment, fill = cap.color)) +
+  geom_bar(position = "dodge") + 
+  labs(
+    title = "Zależność przytwierdzenia skrzelowego od koloru czapki",
+    x = "Przytwierdzenie skrzelowe",
+    y = "Liczba wystąpień",
+    fill = "Kolor czapki"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Konwersja ggplot2 na interaktywny wykres za pomocą plotly
+interactive_plot <- ggplotly(plot3)
+
+# Wyświetlenie interaktywnego wykresu
+interactive_plot
+
+```
+
+### Opis:
+
+* **attached** - przytwierdzone (skrzela przylegające do trzonu grzyba).
+* **descending** - opadające (skrzela schodzące w dół trzonu, lekko otaczające jego powierzchnię).
+* **ephemeral** - nietrwałe (skrzela, które szybko opadają lub zanikają).
+* **free** - wolne (skrzela nie dotykają trzonu, są od niego oddzielone).
+
+### Interpretacja oraz Wnioski:
+
+* **Typ przytwierdzenia Attached **(Attached – przytwierdzone, czyli skrzela przylegające do trzonu grzyba.) jest najczęściej spotykany w zbiorze danych i jednocześnie najbardziej różnorodny pod względem kolorów czapek. Jest to istotne dla identyfikacji grzybów, ponieważ może wskazywać, że attached jest dominującym typem w naturze.
+
+
+* **Kolor brązowy** (brown) jest najbardziej reprezentowanym kolorem czapki, co wskazuje, że jest to cecha często występująca u grzybów, niezależnie od typu przytwierdzenia skrzelowego.
+
+
+* **Typ descending** (Descending – opadające, czyli skrzela schodzące w dół trzonu, lekko otaczające jego powierzchnię.) zajmuje drugie miejsce pod względem liczby wystąpień, co czyni go również ważnym z punktu widzenia różnorodności gatunkowej.
+
+Analiza ta pokazuje, że badanie cech morfologicznych, takich jak przytwierdzenie skrzelowe i kolor czapki, może dostarczyć cennych informacji o różnorodności gatunków i ich częstości występowania w danych ekosystemach.
+
+
+
+##  4. Siedlisko a jadalność.
+
+Zilustorwany wykres słupokowy pokaże, jakie siedliska są najczęściej objęte przez grzyby jadalne i trujące. Taka analiza może ujawnić, czy istnieje możliwość wystąpienia grzybów jadalnych lub trujących w siedliskach, np. czy są jednymi z najczęstszych spotykanych w lasach, na terenach trawiastych czy miejskich.
+
+
+```{r,echo=FALSE}
+library(ggplot2)
+library(dplyr)
+
+# Filtracja danych, aby usunąć wiersze z NULL i NA w kolumnie habitat
+data_filtered <- data %>%
+  filter(!is.na(habitat) & habitat != "NULL")
+
+# Tworzenie wykresu
+ggplot(data_filtered, aes(x = habitat, fill = class)) +
+  geom_bar(position = "dodge") +  
+  labs(
+    title = "Siedlisko a jadalność grzybów", 
+    x = "Siedlisko",                         
+    y = "Liczba grzybów"                     
+  ) +
+  theme_minimal() +  
+  scale_fill_manual(values = c("edible" = "green", "poisonous" = "red")) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Obrócenie etykiet osi X
+    plot.title = element_text(hjust = 0.5),  # Wycentrowanie tytułu
+    panel.grid.major.x = element_blank(),  # Usunięcie siatki pionowej
+    panel.grid.minor = element_blank()  # Usunięcie siatki pomocniczej
+  ) +
+  geom_text(aes(label = after_stat(count)), stat = "count", position = position_dodge(width = 0.8), vjust = -0.25)  # Etykiety nad słupkami
+
+
+```
+
+
+### Opis:
+
+Wykres przedstawia rozkład liczby grzybów jadalnych (zielone słupki) i trujących (czerwone słupki) w różnych siedliskach oznaczonych na osi poziomej (X). Siedliska obejmują:
+
+* damp_forest (wilgotny las)
+* grassy (trawiaste)
+* leaves (obszary liściaste)
+* meadows (łąki)
+* paths (ścieżki)
+* urban (miejskie)
+* woods (mały las)
+
+
+### Intrpretacja oraz Wnioski:
+
+Analiza zależności między siedliskiem a jadalnością grzybów wskazuje, że wilgotne lasy stanowią dominujące środowisko występowania zarówno grzybów trujących, jak i jadalnych. Spośród wszystkich analizowanych siedlisk, to właśnie wilgotne tereny leśne są miejscem, gdzie spotyka się najwięcej okazów, przy czym liczba grzybów trujących znacząco przewyższa liczbę jadalnych. Wynika to najpewniej z optymalnych warunków środowiskowych, jakie oferują wilgotne lasy, w tym wysokiej wilgotności oraz dużego zacienienia, sprzyjających rozwojowi różnorodnych gatunków grzybów.
+
+
+
+## 5. Pora roku a jadalność
+
+Pora roku może mieć wpływ na dostępność różnych gatunków grzybów. Wykres słupkowy prowadzący do gniazd grzybów jadalnych i trujących w różnych porach roku może pojawić się, kiedy najczęściej występują grzyby jadalne.
+
+```{r,echo=FALSE}
+library(ggplot2)
+library(dplyr)
+
+# Agregacja danych, aby uzyskać liczbę grzybów według jadalności i sezonu
+line_data <- data %>%
+  group_by(season, class) %>%
+  summarise(count = n(), .groups = 'drop') %>%  # Agregacja danych
+  ungroup()
+
+# Wykres liniowy
+ggplot(line_data, aes(x = season, y = count, color = class, group = class)) +
+  geom_line(linewidth = 1) +                     
+  geom_point(size = 3) +                         
+  labs(title = "Liczba grzybów w zależności od pory roku", 
+       x = "Pora roku", 
+       y = "Liczba grzybów") +
+  theme_minimal() +
+  scale_color_manual(values = c("poisonous" = "red", "edible" = "green")) +
+  theme(legend.title = element_blank(), 
+        panel.grid.minor = element_blank(),      
+        panel.grid.major = element_line(color = "grey", linewidth = 0.5))  
+
+
+
+```
+
+
+
+
+### Interpretacja oraz Wnioski:
+
+Analiza zależności między porą roku a jadalnością grzybów wskazuje, że jesień jest okresem o wyjątkowej obfitości grzybów. Wtedy  występuje większa liczba gatunków trujących niż jadalnych , jest to pojedyncza pora roku, która nie obejmuje największej liczebności grzybów jadalnych w innych sezonach. Jest to możliwe, kiedy występuje grzybów, co zwiększa ryzyko natrafienia na grzybach trujących, jak i szanse na wykorzystanie wartościowych, jadalnych okazów. Ten wzór może sugerować, że okres dziesięciu warunków środowiskowych jest niezbędny dla rozwoju grzybów jadalnych, jak i trujących, co powoduje spadek sezonem dla występujących grzybobrania oraz postępuje zgodnie z wymaganiami i wymaganym zbieraniem.
+
+
+
+## **Końcowe podsumowanie.**
+
+Analiza przeprowadzonych wizualizacji pozwala na zidentyfikowanie istotnych wzorców oraz dostarcza cennych informacji na temat cech różnicujących grzyby jadalne od trujących. Wyniki badań mają również istotne implikacje w kontekście zrozumienia biologii grzybów oraz ich potencjalnego wykorzystania w praktyce, jak i w profilaktyce związanej z unikaniem spożycia trujących gatunków.
+
+ Moje badania opierały się na hipotezach, że istnieje wyraźna konsekwencja między tymi cechami ,a klasyfikacją grzybów jako jadalnych lub trujących. Przeprowadzono dane oraz ich wizualizację, które są odpowiedziami na pytania badawcze oraz zostały sprawdzone moje hipotezy.
+
+
+* **Kolor kapelusza a jadalność grzybów.**
+
+
+Pierwsza wizualizacja, badająca relację między kolorem kapelusza a jadalnością grzybów, wykazała interesujące tendencje. Grzyby o kolorach bardziej stonowanych, takich jak brązowy, są częściej klasyfikowane jako jadalne, co może wynikać z ich większej częstości występowania w naturze lub mniejszej potrzeby wytwarzania wyrazistych barw pełniących funkcje ostrzegawcze. Natomiast kolory takie jak czerwony, żółty czy szary pojawiają się częściej wśród gatunków trujących
+
+Jednocześnie należy podkreślić, że kolory kapeluszy nie zawsze są jednoznacznym wskaźnikiem jadalności, ponieważ istnieją zarówno jadalne grzyby o jaskrawych barwach, jak i trujące okazy o stonowanych kolorach. Stąd kluczowe jest, aby nie polegać wyłącznie na tej cesze podczas identyfikacji grzybów w praktyce.
+
+
+* **Wymiary grzyba a jego jadalność**
+
+Druga wizualizacja, przedstawiająca zależność między wysokością a szerokością grzybów, również dostarczyła interesujących spostrzeżeń. Analiza rozkładu punktów pokazała, że grzyby jadalne często cechują się większymi wymiarami, zarówno pod względem wysokości, jak i szerokości, co może wskazywać, że większe okazy są bardziej podatne na zbiór przez ludzi lub charakteryzują się większą stabilnością środowiskową, pozwalającą na rozwinięcie znacznych rozmiarów. Jednakże, występowanie dużych grzybów trujących dowodzi, że sama wielkość nie jest wystarczającym wskaźnikiem do oceny ich bezpieczeństwa.
+
+
+* **Przytwierdzenie skrzelowe a kolor kapelusza.**
+
+
+Analiza zależności między sposobem przytwierdzenia skrzelowego a kolorem kapelusza dostarczyła interesujących wniosków. Grzyby z przytwierdzonymi (attached) skrzelami cechują się największą różnorodnością kolorystyczną, a także najliczniej występującym brązowym kapeluszem (ponad 4000 wystąpień). Skrzela opadające (descending) zajmują drugie miejsce pod względem liczebności, co wskazuje na ich znaczenie w różnorodności biologicznej grzybów. Te dwa typy skrzel są charakterystyczne dla szerokiego zakresu grzybów, co podkreśla ich adaptacyjność w różnych środowiskach
+
+
+* **Siedlisko a jadalność grzybów**
+
+Trzecia wizualizacja, analizująca zależność między siedliskiem a jadalnością grzybów, podkreśliła rolę środowiska naturalnego w występowaniu różnych gatunków grzybów. Wilgotne lasy okazały się dominującym siedliskiem zarówno dla grzybów jadalnych, jak i trujących. Można to wyjaśnić faktem, że takie środowiska oferują idealne warunki do wzrostu grzybów, w tym wysoką wilgotność, zacienienie i bogactwo substancji odżywczych.
+
+Interesującym spostrzeżeniem jest jednak fakt, że grzyby trujące występują w wilgotnych lasach znacznie częściej niż jadalne. Może to wynikać z większej różnorodności gatunkowej w tych obszarach, co zwiększa prawdopodobieństwo obecności gatunków trujących. Z drugiej strony, grzyby jadalne częściej można znaleźć na terenach trawiastych czy miejskich, co może sugerować ich adaptację do mniej typowych siedlisk. 
+
+
+* **Pora roku a jadalność grzybów**
+
+Ostatnia wizualizacja, badająca zależność między porą roku a występowaniem grzybów, potwierdziła, że jesień jest okresem największej obfitości zarówno grzybów jadalnych, jak i trujących. To sezon sprzyjający grzybobraniom, ale także czas, w którym rośnie ryzyko spożycia trujących gatunków z powodu ich wyraźnej dominacji liczebnej. Obfitość grzybów jesienią wynika z optymalnych warunków środowiskowych, takich jak odpowiednia wilgotność i umiarkowane temperatury.
+
+
+
+
+## **Ostateczne wnioski**
+
+Analizy wizualne pozwoliły na zidentyfikowanie istotnych cech różnicujących grzyby jadalne od trujących. Stonowane kolory kapeluszy, jak brązowy, częściej występują u grzybów jadalnych, podczas gdy wyraziste barwy, takie jak czerwony i żółty, wskazują na toksyczność. Większe wymiary grzybów mogą sugerować ich jadalność, ale nie są wystarczającym wskaźnikiem, ponieważ wśród dużych grzybów są także trujące.
+
+Wilgotne lasy stanowią główne siedlisko zarówno grzybów jadalnych, jak i trujących, ale te drugie są tam bardziej różnorodne. Jesień okazała się sezonem największej obfitości grzybów, co zwiększa ryzyko spożycia trujących gatunków. Choć analiza dostarcza cennych wskazówek, żadne z badanych cech nie pozwalają jednoznacznie ocenić jadalności. Kluczowe jest zatem precyzyjne rozpoznawanie gatunków i ostrożność w ich zbieraniu.
+
+Uzyskane wyniki wskazują także na potrzebę dalszych badań. Szczególnie istotne może być zastosowanie nowoczesnych metod, takich jak analiza chemiczna w celu identyfikacji toksyn. Takie podejście pozwoli nie tylko lepiej zrozumieć złożoność i różnorodność biologiczną grzybów, ale również zwiększy bezpieczeństwo związane z ich spożyciem.
+
+
+
+
+
+
+
+
